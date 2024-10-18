@@ -4,7 +4,7 @@ description = "Vue support."
 version = "0.1.1"
 schema_version = 1
 authors = ["Piotr Osiewicz <piotr@zed.dev>"]
-repository = "https://github.com/zed-industries/zed"
+repository = "https://github.com/zed-extensions/vue"
 
 [language_servers.vue-language-server]
 name = "Vue Language Server"

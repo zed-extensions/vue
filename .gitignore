@@ -1,0 +1,11 @@
+#
+# zed-vue
+#
+
+*.wasm
+
+#
+# Rust
+#
+
+/target
