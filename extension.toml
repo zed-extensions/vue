@@ -3,7 +3,7 @@ name = "Vue"
 description = "Vue support."
 version = "0.1.2"
 schema_version = 1
-authors = ["Piotr Osiewicz <piotr@zed.dev>"]
+authors = ["Zed Industries <support@zed.dev>"]
 repository = "https://github.com/zed-extensions/vue"
 
 [language_servers.vue-language-server]
