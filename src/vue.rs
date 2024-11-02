@@ -144,12 +144,15 @@ impl zed::Extension for VueExtension {
             command: zed::node_binary_path()?,
             args: vec![
                 env::current_dir()
-                    .unwrap()
-                    .join(&server_path)
-                    .to_string_lossy()
-                    .to_string(),
-                "--stdio".to_string(),
-            ],
+                .unwrap()
+                .join(&server_path)
+                .canonicalize()
+                .unwrap_or_else(|_| env::current_dir().unwrap().join(&server_path))
+                .to_str()
+                .unwrap()
+                .replace("/C:", "C:")
+                .replace("\\", "/")
+                , "--stdio".to_string()],
             env: Default::default(),
         })
     }
