@@ -79,3 +79,15 @@
     (#not-any-of? @_attr_name "lang")
     (#set! language "css")
 )
+
+; <template lang="pug">
+((template_element
+  (start_tag
+    (attribute
+      (attribute_name) @_lang
+      (quoted_attribute_value
+        (attribute_value) @_pug)))
+  (text) @content)
+  (#eq? @_lang "lang")
+  (#eq? @_pug "pug")
+  (#set! language "pug"))
