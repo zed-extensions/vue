@@ -4,6 +4,7 @@ use std::{env, fs};
 use serde::Deserialize;
 use zed::lsp::{Completion, CompletionKind};
 use zed::CodeLabelSpan;
+use zed_extension_api::settings::LspSettings;
 use zed_extension_api::{self as zed, serde_json, Result};
 
 const SERVER_PATH: &str = "node_modules/@vue/language-server/bin/vue-language-server.js";
@@ -157,13 +158,21 @@ impl zed::Extension for VueExtension {
     fn language_server_initialization_options(
         &mut self,
         _language_server_id: &zed::LanguageServerId,
-        _worktree: &zed::Worktree,
+        worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        Ok(Some(serde_json::json!({
-            "typescript": {
-                "tsdk": self.typescript_tsdk_path
-            }
-        })))
+        let default_lsp_settings = LspSettings {
+            initialization_options: Some(serde_json::json!({
+                "typescript": {
+                    "tsdk": self.typescript_tsdk_path
+                }
+            })),
+            ..Default::default()
+        };
+        let init_opts = LspSettings::for_worktree("vue", worktree)
+            .map_or(default_lsp_settings.initialization_options, |s| {
+                s.initialization_options
+            });
+        Ok(init_opts)
     }
 
     fn label_for_completion(
