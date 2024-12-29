@@ -132,7 +132,7 @@ fn lsp_path(server_path: String) -> String {
         .join(&server_path)
         .to_string_lossy()
         .to_string();
-    let re = regex::Regex::new(r"^[\/\\][A-Z]+:").unwrap();
+    let re = regex::Regex::new(r"^\/[A-Z]+:").unwrap();
     if re.is_match(&path) {
         return path.trim_start_matches("/").to_string();
     }
