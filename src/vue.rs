@@ -126,6 +126,19 @@ impl VueExtension {
     }
 }
 
+fn lsp_path(server_path: String) -> String {
+    let path = env::current_dir()
+        .unwrap()
+        .join(&server_path)
+        .to_string_lossy()
+        .to_string();
+    let re = regex::Regex::new(r"^[\/\\][A-Z]+:").unwrap();
+    if re.is_match(&path) {
+        return path.trim_start_matches("/").to_string();
+    }
+    return path.to_string();
+}
+
 impl zed::Extension for VueExtension {
     fn new() -> Self {
         Self {
@@ -142,14 +155,7 @@ impl zed::Extension for VueExtension {
         let server_path = self.server_script_path(language_server_id, worktree)?;
         Ok(zed::Command {
             command: zed::node_binary_path()?,
-            args: vec![
-                env::current_dir()
-                    .unwrap()
-                    .join(&server_path)
-                    .to_string_lossy()
-                    .to_string(),
-                "--stdio".to_string(),
-            ],
+            args: vec![lsp_path(server_path), "--stdio".to_string()],
             env: Default::default(),
         })
     }
