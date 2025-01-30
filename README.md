@@ -10,13 +10,12 @@ To develop this extension, see the [Developing Extensions](https://zed.dev/docs/
 
 ### Specifying location of TypeScript SDK
 
-By default, this extension assumes that you are working in a project with a `node_modules`
-directory, and searches for the TypeScript SDK inside that directory.
+By default, this extension assumes that you are working in a project with a `node_modules` directory, and searches for
+the TypeScript SDK inside that directory.
 
-This may not always be true; for example, when working in a project that uses Yarn PnP, there is
-no `node_modules`. For editor support, the [documented](https://yarnpkg.com/getting-started/editor-sdks)
-approach is to run something like `yarn dlx @yarnpkg/sdks`. In that case, you can provide the following
-initialization options in your Zed settings:
+This may not always be true; for example, when working in a project that uses Yarn PnP, there is no `node_modules`. For
+editor support, the [documented](https://yarnpkg.com/getting-started/editor-sdks) approach is to run something like
+`yarn dlx @yarnpkg/sdks`. In that case, you can provide the following initialization options in your Zed settings:
 
 ```json
 {
