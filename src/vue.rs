@@ -49,8 +49,7 @@ impl VueExtension {
             language_server_id,
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
-        // We hardcode the version to 1.8 since we do not support @vue/language-server 2.0 yet.
-        let version = "1.8".to_string();
+        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
 
         if !server_exists
             || zed::npm_package_installed_version(PACKAGE_NAME)?.as_ref() != Some(&version)
@@ -164,6 +163,9 @@ impl zed::Extension for VueExtension {
             initialization_options: Some(serde_json::json!({
                 "typescript": {
                     "tsdk": self.typescript_tsdk_path
+                },
+                "vue": {
+                    "hybridMode": false,
                 }
             })),
             ..Default::default()
