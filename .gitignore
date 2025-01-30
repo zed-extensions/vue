@@ -3,6 +3,7 @@
 #
 
 *.wasm
+grammars/
 
 #
 # Rust
