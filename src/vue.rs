@@ -48,7 +48,7 @@ impl VueExtension {
             language_server_id,
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
-        let version = "2.2.0".to_string();
+        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
 
         if !server_exists
             || zed::npm_package_installed_version(PACKAGE_NAME)?.as_ref() != Some(&version)
