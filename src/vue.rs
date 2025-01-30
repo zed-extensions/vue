@@ -4,6 +4,7 @@ use std::{env, fs};
 use serde::Deserialize;
 use zed::lsp::{Completion, CompletionKind};
 use zed::CodeLabelSpan;
+use zed_extension_api::serde_json::json;
 use zed_extension_api::settings::LspSettings;
 use zed_extension_api::{self as zed, serde_json, Result};
 
@@ -159,22 +160,21 @@ impl zed::Extension for VueExtension {
         _language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        let default_lsp_settings = LspSettings {
-            initialization_options: Some(serde_json::json!({
-                "typescript": {
-                    "tsdk": self.typescript_tsdk_path
-                },
-                "vue": {
-                    "hybridMode": false,
-                }
-            })),
-            ..Default::default()
-        };
-        let init_opts = LspSettings::for_worktree("vue", worktree)
-            .map_or(default_lsp_settings.initialization_options, |s| {
-                s.initialization_options
+        let initialization_options = LspSettings::for_worktree("vue", worktree)
+            .ok()
+            .and_then(|settings| settings.initialization_options)
+            .unwrap_or_else(|| {
+                json!({
+                    "typescript": {
+                        "tsdk": self.typescript_tsdk_path
+                    },
+                    "vue": {
+                        "hybridMode": false,
+                    }
+                })
             });
-        Ok(init_opts)
+
+        Ok(Some(initialization_options))
     }
 
     fn label_for_completion(
