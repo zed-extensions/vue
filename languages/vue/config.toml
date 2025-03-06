@@ -17,6 +17,14 @@ word_characters = ["-"]
 scope_opt_in_language_servers = ["tailwindcss-language-server"]
 prettier_parser_name = "vue"
 
+[jsx_tag_auto_close]
+open_tag_node_name = "start_tag"
+close_tag_node_name = "end_tag"
+jsx_element_node_name = "element"
+tag_name_node_name = "tag_name"
+erroneous_close_tag_node_name = "erroneous_end_tag"
+erroneous_close_tag_name_node_name = "erroneous_end_tag_name"
+
 [overrides.string]
 word_characters = ["-"]
 opt_into_language_servers = ["tailwindcss-language-server"]
