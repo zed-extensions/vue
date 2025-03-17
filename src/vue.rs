@@ -10,6 +10,7 @@ use zed_extension_api::{self as zed, serde_json, Result};
 
 const SERVER_PATH: &str = "node_modules/@vue/language-server/bin/vue-language-server.js";
 const PACKAGE_NAME: &str = "@vue/language-server";
+const PACKAGE_VERSION: &str = "2.2.8";
 
 const TYPESCRIPT_PACKAGE_NAME: &str = "typescript";
 
@@ -50,16 +51,14 @@ impl VueExtension {
             language_server_id,
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
-        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
-
         if !server_exists
-            || zed::npm_package_installed_version(PACKAGE_NAME)?.as_ref() != Some(&version)
+            || zed::npm_package_installed_version(PACKAGE_NAME)?.as_deref() != Some(PACKAGE_VERSION)
         {
             zed::set_language_server_installation_status(
                 language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
             );
-            let result = zed::npm_install_package(PACKAGE_NAME, &version);
+            let result = zed::npm_install_package(PACKAGE_NAME, PACKAGE_VERSION);
             match result {
                 Ok(()) => {
                     if !self.server_exists() {
