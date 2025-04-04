@@ -1,7 +1,7 @@
 id = "vue"
 name = "Vue"
 description = "Vue support."
-version = "0.2.2"
+version = "0.2.3"
 schema_version = 1
 authors = ["Zed Industries <support@zed.dev>"]
 repository = "https://github.com/zed-extensions/vue"
