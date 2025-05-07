@@ -224,6 +224,7 @@ impl zed::Extension for VueExtension {
                 "plugins": [{
                     "name": "@vue/typescript-plugin",
                     "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
+                    "languages": ["typescript", "vue.js"],
                 }],
             }))),
             _ => Ok(None),
@@ -243,7 +244,8 @@ impl zed::Extension for VueExtension {
                         "globalPlugins": [{
                             "name": "@vue/typescript-plugin",
                             "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
-                            "enableForWorkspaceTypeScriptVersions": true
+                            "enableForWorkspaceTypeScriptVersions": true,
+                            "languages": ["typescript", "vue.js"],
                         }]
                     }
                 },
