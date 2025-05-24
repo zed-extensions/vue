@@ -91,3 +91,8 @@
   (#eq? @_lang "lang")
   (#eq? @_pug "pug")
   (#set! language "pug"))
+
+; <!-- -->
+; Make comment as html
+((comment) @content
+  (#set! language "html"))
