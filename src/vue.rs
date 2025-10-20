@@ -11,6 +11,7 @@ use zed_extension_api::{self as zed, serde_json, Result};
 const SERVER_PATH: &str = "node_modules/@vue/language-server/bin/vue-language-server.js";
 const PACKAGE_NAME: &str = "@vue/language-server";
 
+const TYPESCRIPT_PACKAGE_NAME: &str = "typescript";
 const TS_PLUGIN_PACKAGE_NAME: &str = "@vue/typescript-plugin";
 
 #[derive(Debug, Deserialize)]
@@ -38,6 +39,7 @@ impl VueExtension {
     ) -> Result<String> {
         let server_exists = self.server_exists();
         if self.did_find_server && server_exists {
+            self.install_typescript_if_needed(worktree)?;
             self.install_ts_plugin_if_needed()?;
             return Ok(SERVER_PATH.to_string());
         }
@@ -72,8 +74,48 @@ impl VueExtension {
             }
         }
 
+        self.install_typescript_if_needed(worktree)?;
         self.did_find_server = true;
         Ok(SERVER_PATH.to_string())
+    }
+
+    /// Returns whether a local copy of TypeScript exists in the worktree.
+    fn typescript_exists_for_worktree(&self, worktree: &zed::Worktree) -> Result<bool> {
+        let package_json = worktree.read_text_file("package.json")?;
+        let package_json: PackageJson = serde_json::from_str(&package_json)
+            .map_err(|err| format!("failed to parse package.json: {err}"))?;
+
+        let dev_dependencies = &package_json.dev_dependencies;
+        let dependencies = &package_json.dependencies;
+
+        // Since the extension is not allowed to read the filesystem within the project
+        // except through the worktree (which does not contains `node_modules`), we check
+        // the `package.json` to see if `typescript` is listed in the dependencies.
+        Ok(dev_dependencies.contains_key(TYPESCRIPT_PACKAGE_NAME)
+            || dependencies.contains_key(TYPESCRIPT_PACKAGE_NAME))
+    }
+
+    fn install_typescript_if_needed(&mut self, worktree: &zed::Worktree) -> Result<()> {
+        if self
+            .typescript_exists_for_worktree(worktree)
+            .unwrap_or_default()
+        {
+            println!("found local TypeScript installation");
+            return Ok(());
+        }
+
+        let installed_typescript_version =
+            zed::npm_package_installed_version(TYPESCRIPT_PACKAGE_NAME)?;
+        let latest_typescript_version = zed::npm_package_latest_version(TYPESCRIPT_PACKAGE_NAME)?;
+
+        if installed_typescript_version.as_ref() != Some(&latest_typescript_version) {
+            println!("installing {TYPESCRIPT_PACKAGE_NAME}@{latest_typescript_version}");
+            zed::npm_install_package(TYPESCRIPT_PACKAGE_NAME, &latest_typescript_version)?;
+        } else {
+            println!("typescript already installed");
+        }
+
+        Ok(())
     }
 
     fn install_ts_plugin_if_needed(&mut self) -> Result<()> {
