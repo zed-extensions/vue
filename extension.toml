@@ -16,4 +16,4 @@ code_action_kinds = ["", "quickfix", "refactor.rewrite"]
 
 [grammars.vue]
 repository = "https://github.com/tree-sitter-grammars/tree-sitter-vue"
-commit = "7e48557b903a9db9c38cea3b7839ef7e1f36c693"
+commit = "22bdfa6c9fc0f5ffa44c6e938ec46869ac8a99ff"
