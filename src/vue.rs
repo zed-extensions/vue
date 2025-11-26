@@ -14,9 +14,6 @@ const PACKAGE_NAME: &str = "@vue/language-server";
 const TYPESCRIPT_PACKAGE_NAME: &str = "typescript";
 const TS_PLUGIN_PACKAGE_NAME: &str = "@vue/typescript-plugin";
 
-/// The relative path to TypeScript's SDK.
-const TYPESCRIPT_TSDK_PATH: &str = "node_modules/typescript/lib";
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct PackageJson {
@@ -28,7 +25,6 @@ struct PackageJson {
 
 struct VueExtension {
     did_find_server: bool,
-    typescript_tsdk_path: String,
 }
 
 impl VueExtension {
@@ -52,8 +48,7 @@ impl VueExtension {
             language_server_id,
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
-        // We hardcode the version to 2.2.8 since we do not support @vue/language-server 3.0 yet.
-        let version = "2.2.8".to_string();
+        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
 
         if !server_exists
             || zed::npm_package_installed_version(PACKAGE_NAME)?.as_ref() != Some(&version)
@@ -105,7 +100,7 @@ impl VueExtension {
             .typescript_exists_for_worktree(worktree)
             .unwrap_or_default()
         {
-            println!("found local TypeScript installation at '{TYPESCRIPT_TSDK_PATH}'");
+            println!("found local TypeScript installation");
             return Ok(());
         }
 
@@ -119,12 +114,6 @@ impl VueExtension {
         } else {
             println!("typescript already installed");
         }
-
-        self.typescript_tsdk_path = env::current_dir()
-            .unwrap()
-            .join(TYPESCRIPT_TSDK_PATH)
-            .to_string_lossy()
-            .to_string();
 
         Ok(())
     }
@@ -170,7 +159,6 @@ impl zed::Extension for VueExtension {
     fn new() -> Self {
         Self {
             did_find_server: false,
-            typescript_tsdk_path: TYPESCRIPT_TSDK_PATH.to_owned(),
         }
     }
 
@@ -202,17 +190,7 @@ impl zed::Extension for VueExtension {
         let initialization_options = LspSettings::for_worktree("vue", worktree)
             .ok()
             .and_then(|settings| settings.initialization_options)
-            .unwrap_or_else(|| {
-                json!({
-                    "typescript": {
-                        "tsdk": self.typescript_tsdk_path
-                    },
-                    "vue": {
-                        "hybridMode": false,
-                    }
-                })
-            });
-
+            .unwrap_or_else(|| json!({}));
         Ok(Some(initialization_options))
     }
 
@@ -249,6 +227,7 @@ impl zed::Extension for VueExtension {
                             "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
                             "enableForWorkspaceTypeScriptVersions": true,
                             "languages": ["typescript", "vue.js"],
+                            "configNamespace": "typescript"
                         }]
                     }
                 },
