@@ -95,4 +95,6 @@
 ; <!-- -->
 ; Make comment as html
 ((comment) @content
-  (#set! language "html"))
+  (#set! language "html")
+  (#set! injection.language "comment")
+)
