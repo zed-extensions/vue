@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::{env, fs};
 
 use serde::Deserialize;
@@ -23,13 +24,27 @@ struct PackageJson {
     dev_dependencies: HashMap<String, String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct Settings {
+    #[serde(default)]
+    server_path: String,
+    #[serde(default)]
+    package_json_path: String,
+}
+
 struct VueExtension {
     did_find_server: bool,
+    settings: Settings,
 }
 
 impl VueExtension {
     fn server_exists(&self) -> bool {
-        fs::metadata(SERVER_PATH).map_or(false, |stat| stat.is_file())
+        log::info!(
+            "[vue] settings || server = {} pkg  = {}",
+            self.settings.server_path,
+            self.settings.package_json_path
+        );
+        fs::metadata(self.settings.server_path.as_str()).map_or(false, |stat| stat.is_file())
     }
 
     fn server_script_path(
@@ -37,12 +52,25 @@ impl VueExtension {
         language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<String> {
-        let server_exists = self.server_exists();
+        let mut server_exists = self.server_exists();
         if self.did_find_server && server_exists {
             self.install_typescript_if_needed(worktree)?;
             self.install_ts_plugin_if_needed()?;
-            return Ok(SERVER_PATH.to_string());
+            return Ok(self.settings.server_path.to_string());
         }
+        let lsp_settings = LspSettings::for_worktree("vue", worktree)
+            .ok()
+            .and_then(|settings| settings.settings)
+            .unwrap_or_else(|| json!({}));
+        self.settings = serde_json::from_value(lsp_settings).unwrap_or(Settings {
+            server_path: SERVER_PATH.to_string(),
+            package_json_path: ".".to_string(),
+        });
+        println!(
+            "settings ! server = {} ; pkg  = {}",
+            self.settings.server_path, self.settings.package_json_path
+        );
+        server_exists = self.server_exists();
 
         zed::set_language_server_installation_status(
             language_server_id,
@@ -59,24 +87,18 @@ impl VueExtension {
             );
             let result = zed::npm_install_package(PACKAGE_NAME, &version);
             match result {
-                Ok(()) => {
-                    if !self.server_exists() {
-                        Err(format!(
-                            "installed package '{PACKAGE_NAME}' did not contain expected path '{SERVER_PATH}'",
-                        ))?;
-                    }
-                }
                 Err(error) => {
                     if !self.server_exists() {
                         Err(error)?;
                     }
                 }
+                _ => {}
             }
         }
 
         self.install_typescript_if_needed(worktree)?;
         self.did_find_server = true;
-        Ok(SERVER_PATH.to_string())
+        Ok(self.settings.server_path.to_string())
     }
 
     /// Returns whether a local copy of TypeScript exists in the worktree.
@@ -132,7 +154,9 @@ impl VueExtension {
     }
 
     fn get_ts_plugin_root_path(&self, worktree: &zed::Worktree) -> Result<Option<String>> {
-        let package_json = worktree.read_text_file("package.json")?;
+        let pbuf = PathBuf::from(self.settings.package_json_path.to_string()).join("package.json");
+
+        let package_json = worktree.read_text_file(pbuf.to_string_lossy().to_string().as_str())?;
         let package_json: PackageJson = serde_json::from_str(&package_json)
             .map_err(|err| format!("failed to parse package.json: {err}"))?;
 
@@ -159,6 +183,10 @@ impl zed::Extension for VueExtension {
     fn new() -> Self {
         Self {
             did_find_server: false,
+            settings: Settings {
+                server_path: SERVER_PATH.to_string(),
+                package_json_path: ".".to_string(),
+            },
         }
     }
 
@@ -171,8 +199,7 @@ impl zed::Extension for VueExtension {
         Ok(zed::Command {
             command: zed::node_binary_path()?,
             args: vec![
-                env::current_dir()
-                    .unwrap()
+                PathBuf::from(worktree.root_path())
                     .join(&server_path)
                     .to_string_lossy()
                     .to_string(),
