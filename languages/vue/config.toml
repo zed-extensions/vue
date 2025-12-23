@@ -17,6 +17,7 @@ word_characters = ["-"]
 wrap_characters = { start_prefix = "<", start_suffix = ">", end_prefix = "</", end_suffix = ">" }
 scope_opt_in_language_servers = ["tailwindcss-language-server"]
 prettier_parser_name = "vue"
+completion_query_characters = ["-", ":", "@"]
 
 [jsx_tag_auto_close]
 open_tag_node_name = "start_tag"
