@@ -29,4 +29,5 @@ erroneous_close_tag_name_node_name = "erroneous_end_tag_name"
 
 
 [overrides.string]
+completion_query_characters = ["-"]
 opt_into_language_servers = ["tailwindcss-language-server"]
