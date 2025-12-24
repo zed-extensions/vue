@@ -29,7 +29,7 @@ struct VueExtension {
 
 impl VueExtension {
     fn server_exists(&self) -> bool {
-        fs::metadata(SERVER_PATH).map_or(false, |stat| stat.is_file())
+        fs::metadata(SERVER_PATH).is_ok_and(|stat| stat.is_file())
     }
 
     fn server_script_path(
