@@ -38,12 +38,7 @@ struct VueExtension {
 }
 
 impl VueExtension {
-    fn server_exists(&self) -> bool {
-        log::info!(
-            "[vue] settings || server = {} pkg  = {}",
-            self.settings.server_path,
-            self.settings.package_json_path
-        );
+    fn server_exists(&self) -> bool { 
         fs::metadata(self.settings.server_path.as_str()).map_or(false, |stat| stat.is_file())
     }
 
