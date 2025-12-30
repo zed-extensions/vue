@@ -224,10 +224,10 @@ impl zed::Extension for VueExtension {
             .and_then(|settings| settings.settings)
             .unwrap_or_else(|| {
                 json!({
-                    "vue.inlayHints.inlineHandlerLeading": false,
-                    "vue.inlayHints.missingProps": false,
-                    "vue.inlayHints.optionsWrapper": false,
-                    "vue.inlayHints.vBindShorthand": false,
+                    "vue.inlayHints.inlineHandlerLeading": true,
+                    "vue.inlayHints.missingProps": true,
+                    "vue.inlayHints.optionsWrapper": true,
+                    "vue.inlayHints.vBindShorthand": true,
                 })
             });
 
