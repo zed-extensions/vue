@@ -30,3 +30,34 @@ editor support, the [documented](https://yarnpkg.com/getting-started/editor-sdks
   }
 }
 ```
+
+## Settings Options
+
+`lsp.vue.settings` is passed through to the Vue language server (Volar / `vue-language-tools`).
+
+You can find the upstream settings configuration schema in `vuejs/language-tools` (VS Code extension):
+
+https://github.com/vuejs/language-tools/blob/master/extensions/vscode/package.json#L252
+
+> NOTE: some settings (e.g. `vue.editor.focusMode`) may not take effect.
+
+Default settings like below:
+
+```json
+{
+  "lsp": {
+    "vue": {
+      "settings": {
+        // inlay hints for inline template event handlers.
+        "vue.inlayHints.inlineHandlerLeading": true,
+        // hints when required component props are missing in templates.
+        "vue.inlayHints.missingProps": true,
+        // hints for patterns that wrap component options.
+        "vue.inlayHints.optionsWrapper": true,
+        // hints related to `v-bind` shorthand (`:`).
+        "vue.inlayHints.vBindShorthand": true
+      }
+    }
+  }
+}
+```
