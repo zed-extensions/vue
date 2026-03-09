@@ -56,4 +56,5 @@ editor support, the [documented](https://yarnpkg.com/getting-started/editor-sdks
 
 You can find the upstream settings configuration schema [`here`](https://github.com/vuejs/language-tools/blob/ee5041d27940cf6f9a5150635d3b13140a9dff54/extensions/vscode/package.json#L252).
 
-> [!NOTE]: Some settings (e.g. `vue.editor.focusMode`) may not take effect.
+> [!NOTE]
+> Some settings (e.g. `vue.editor.focusMode`) may not take effect.
