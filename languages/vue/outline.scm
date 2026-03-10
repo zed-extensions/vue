@@ -3,30 +3,21 @@
 
 ; ========== template =========
 (template_element
-  (start_tag) @name
-) @item
-
+  (start_tag) @name) @item
 
 ; Custom elements/components (PascalCase or hyphenated) - self-closing tags
 (element
   (start_tag
-    (tag_name) @name)
-) @item
+    (tag_name) @name)) @item
 
 (element
   (self_closing_tag
-    (tag_name) @name)
-) @item
-
+    (tag_name) @name)) @item
 
 ; ======= script ======
-
 (script_element
-    (start_tag) @name
-) @item
-
+  (start_tag) @name) @item
 
 ; ========= style =========
 (style_element
-    (start_tag) @name
-) @item
+  (start_tag) @name) @item
