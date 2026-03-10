@@ -284,7 +284,7 @@ impl zed::Extension for VueExtension {
                             "name": "@vue/typescript-plugin",
                             "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
                             "enableForWorkspaceTypeScriptVersions": true,
-                            "languages": ["typescript", "vue.js"],
+                            "languages": ["vue.js"],
                             "configNamespace": "typescript"
                         }]
                     }
