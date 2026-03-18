@@ -17,6 +17,7 @@
 (raw_text) @embedded
 
 (directive_name) @keyword.directive
+
 (directive_argument) @constant
 
 (start_tag) @tag
