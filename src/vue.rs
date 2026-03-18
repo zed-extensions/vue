@@ -12,6 +12,12 @@ use zed_extension_api::{self as zed, serde_json, Result};
 const SERVER_PATH: &str = "node_modules/@vue/language-server/bin/vue-language-server.js";
 const PACKAGE_NAME: &str = "@vue/language-server";
 
+// Pin to 3.2.1 to work around an upstream crash in @vue/language-service where
+// `meta?.props.map(...)` throws when `meta.props` is undefined.
+// See: https://github.com/vuejs/language-tools/issues/5956
+// TODO: Remove this pin once upstream publishes a fixed version.
+const PINNED_SERVER_VERSION: &str = "3.2.1";
+
 const TYPESCRIPT_PACKAGE_NAME: &str = "typescript";
 const TS_PLUGIN_PACKAGE_NAME: &str = "@vue/typescript-plugin";
 
@@ -94,7 +100,7 @@ impl VueExtension {
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
 
-        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
+        let version = PINNED_SERVER_VERSION.to_string();
         let installed_version = zed::npm_package_installed_version(PACKAGE_NAME)?;
 
         if !fs::metadata(SERVER_PATH).is_ok() || installed_version.as_ref() != Some(&version) {
