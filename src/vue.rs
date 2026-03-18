@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::{env, fs};
 
 use serde::Deserialize;
@@ -23,8 +24,17 @@ struct PackageJson {
     dev_dependencies: HashMap<String, String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct Settings {
+    #[serde(default)]
+    server_path: String,
+    #[serde(default)]
+    package_json_path: String,
+}
+
 struct VueExtension {
     did_find_server: bool,
+    settings: Settings,
 }
 
 impl VueExtension {
@@ -37,46 +47,75 @@ impl VueExtension {
         language_server_id: &zed::LanguageServerId,
         worktree: &zed::Worktree,
     ) -> Result<String> {
-        let server_exists = self.server_exists();
-        if self.did_find_server && server_exists {
-            self.install_typescript_if_needed(worktree)?;
-            self.install_ts_plugin_if_needed()?;
-            return Ok(SERVER_PATH.to_string());
+        // Load settings under key "lsp.vue-language-server"
+        let lsp_settings = LspSettings::for_worktree("vue-language-server", worktree)
+            .ok()
+            .and_then(|settings| settings.settings)
+            .unwrap_or_else(|| json!({}));
+
+        // Deserialize settings
+        if let Ok(new_settings) = serde_json::from_value::<Settings>(lsp_settings) {
+            if !new_settings.server_path.is_empty() {
+                self.settings.server_path = new_settings.server_path;
+            }
+            if !new_settings.package_json_path.is_empty() {
+                self.settings.package_json_path = new_settings.package_json_path;
+            }
         }
 
+        // Resolve the configured path against the worktree root
+        let worktree_candidate =
+            PathBuf::from(worktree.root_path()).join(&self.settings.server_path);
+
+        // If the file exists in the worktree, return the absolute path immediately
+        if fs::metadata(&worktree_candidate).is_ok_and(|stat| stat.is_file()) {
+            self.install_typescript_if_needed(worktree)?;
+            self.install_ts_plugin_if_needed()?;
+            self.did_find_server = true;
+            // Return the absolute path so command logic doesn't have to guess
+            return Ok(worktree_candidate.to_string_lossy().to_string());
+        }
+
+        // Fallback: try the hardcoded one
+        let extension_cwd = env::current_dir().map_err(|e| e.to_string())?;
+        let internal_candidate = extension_cwd.join(SERVER_PATH);
+
+        if fs::metadata(&internal_candidate)
+            .map(|s| s.is_file())
+            .unwrap_or(false)
+        {
+            self.did_find_server = true;
+            return Ok(internal_candidate.to_string_lossy().to_string());
+        }
+
+        // If neither exists, download the default package
         zed::set_language_server_installation_status(
             language_server_id,
             &zed::LanguageServerInstallationStatus::CheckingForUpdate,
         );
-        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
 
-        if !server_exists
-            || zed::npm_package_installed_version(PACKAGE_NAME)?.as_ref() != Some(&version)
-        {
+        let version = zed::npm_package_latest_version(PACKAGE_NAME)?;
+        let installed_version = zed::npm_package_installed_version(PACKAGE_NAME)?;
+
+        if !fs::metadata(SERVER_PATH).is_ok() || installed_version.as_ref() != Some(&version) {
             zed::set_language_server_installation_status(
                 language_server_id,
                 &zed::LanguageServerInstallationStatus::Downloading,
             );
             let result = zed::npm_install_package(PACKAGE_NAME, &version);
             match result {
-                Ok(()) => {
-                    if !self.server_exists() {
-                        Err(format!(
-                            "installed package '{PACKAGE_NAME}' did not contain expected path '{SERVER_PATH}'",
-                        ))?;
-                    }
-                }
                 Err(error) => {
                     if !self.server_exists() {
                         Err(error)?;
                     }
                 }
+                _ => {}
             }
         }
 
         self.install_typescript_if_needed(worktree)?;
         self.did_find_server = true;
-        Ok(SERVER_PATH.to_string())
+        Ok(internal_candidate.to_string_lossy().to_string())
     }
 
     /// Returns whether a local copy of TypeScript exists in the worktree.
@@ -132,7 +171,9 @@ impl VueExtension {
     }
 
     fn get_ts_plugin_root_path(&self, worktree: &zed::Worktree) -> Result<Option<String>> {
-        let package_json = worktree.read_text_file("package.json")?;
+        let pbuf = PathBuf::from(self.settings.package_json_path.to_string()).join("package.json");
+
+        let package_json = worktree.read_text_file(pbuf.to_string_lossy().to_string().as_str())?;
         let package_json: PackageJson = serde_json::from_str(&package_json)
             .map_err(|err| format!("failed to parse package.json: {err}"))?;
 
@@ -159,6 +200,10 @@ impl zed::Extension for VueExtension {
     fn new() -> Self {
         Self {
             did_find_server: false,
+            settings: Settings {
+                server_path: SERVER_PATH.to_string(),
+                package_json_path: ".".to_string(),
+            },
         }
     }
 
@@ -170,14 +215,7 @@ impl zed::Extension for VueExtension {
         let server_path = self.server_script_path(language_server_id, worktree)?;
         Ok(zed::Command {
             command: zed::node_binary_path()?,
-            args: vec![
-                env::current_dir()
-                    .unwrap()
-                    .join(&server_path)
-                    .to_string_lossy()
-                    .to_string(),
-                "--stdio".to_string(),
-            ],
+            args: vec![server_path, "--stdio".to_string()],
             env: Default::default(),
         })
     }
