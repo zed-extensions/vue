@@ -7,12 +7,10 @@
 
 ; Custom elements/components (PascalCase or hyphenated) - self-closing tags
 (element
-  (start_tag
-    (tag_name) @name)) @item
+  (start_tag) @name) @item
 
 (element
-  (self_closing_tag
-    (tag_name) @name)) @item
+  (self_closing_tag) @name) @item
 
 ; ======= script ======
 (script_element
