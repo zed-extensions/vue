@@ -1,10 +1,10 @@
 (comment) @comment
 
 ((tag_name) @tag
-  (#match? @tag "^[a-z]"))
+  (#match? @tag "^[a-z][a-z0-9]*$"))
 
 ((tag_name) @tag @tag.component.type.constructor
-  (#match? @tag "^[A-Z]"))
+  (#match? @tag "(^[A-Z][A-Za-z0-9]*$)|(^[a-z][a-z0-9]*(-[a-z0-9]+)+$)"))
 
 (attribute) @attribute
 
