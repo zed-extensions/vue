@@ -32,6 +32,8 @@
 
 "=" @punctuation.delimiter
 
+":" @punctuation.delimiter
+
 [
   "<"
   ">"
