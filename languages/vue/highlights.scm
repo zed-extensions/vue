@@ -26,7 +26,7 @@
 
 (self_closing_tag) @tag
 
-"=" @operator
+"=" @punctuation.delimiter
 
 [
   "<"
