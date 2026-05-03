@@ -16,9 +16,13 @@
 
 (raw_text) @embedded
 
-(directive_name) @keyword.directive
+((directive_name) @punctuation.delimiter
+  (#match? @punctuation.delimiter "^[:@#]$"))
 
-(directive_argument) @constant
+((directive_name) @keyword.directive
+  (#match? @keyword.directive "^v-"))
+
+(directive_argument) @attribute
 
 (start_tag) @tag
 
@@ -26,7 +30,9 @@
 
 (self_closing_tag) @tag
 
-"=" @operator
+"=" @punctuation.delimiter
+
+":" @punctuation.delimiter
 
 [
   "<"
