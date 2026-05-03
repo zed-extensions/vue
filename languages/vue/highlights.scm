@@ -18,7 +18,7 @@
 
 (directive_name) @keyword.directive
 
-(directive_argument) @constant
+(directive_argument) @attribute
 
 (start_tag) @tag
 
