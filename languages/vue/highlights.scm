@@ -30,9 +30,10 @@
 
 (self_closing_tag) @tag
 
-"=" @punctuation.delimiter
-
-":" @punctuation.delimiter
+[
+  "="
+  ":"
+] @punctuation.delimiter
 
 [
   "<"
