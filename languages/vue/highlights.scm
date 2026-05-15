@@ -17,7 +17,7 @@
 (raw_text) @embedded
 
 ((directive_name) @punctuation.delimiter
-  (#match? @punctuation.delimiter "^[:@#]$"))
+  (#any-of? @punctuation.delimiter ":" "@" "#"))
 
 ((directive_name) @keyword.directive
   (#match? @keyword.directive "^v-"))
