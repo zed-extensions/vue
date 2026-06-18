@@ -84,6 +84,19 @@
   (#eq? @_pug "pug")
   (#set! language "pug"))
 
+; Vue custom blocks (e.g <i18n lang="json">)
+; https://vuejs.org/api/sfc-spec.html#custom-blocks
+(element
+  (start_tag
+    (tag_name) @_tag
+    (attribute
+      (attribute_name) @_attr
+      (#eq? @_attr "lang")
+      (quoted_attribute_value
+        (attribute_value) @language)))
+  (#not-any-of? @_tag "template" "script" "style")
+  (text) @content)
+
 ; <!-- -->
 ; Make comment as html
 ((comment) @content
