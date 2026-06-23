@@ -27,6 +27,10 @@ struct VueExtension {
     did_find_server: bool,
 }
 
+fn extension_install_dir() -> String {
+    env::current_dir().unwrap().to_string_lossy().to_string()
+}
+
 impl VueExtension {
     fn server_exists(&self) -> bool {
         fs::metadata(SERVER_PATH).is_ok_and(|stat| stat.is_file())
@@ -40,7 +44,7 @@ impl VueExtension {
         let server_exists = self.server_exists();
         if self.did_find_server && server_exists {
             self.install_typescript_if_needed(worktree)?;
-            self.install_ts_plugin_if_needed()?;
+            self.sync_ts_plugin();
             return Ok(SERVER_PATH.to_string());
         }
 
@@ -75,6 +79,7 @@ impl VueExtension {
         }
 
         self.install_typescript_if_needed(worktree)?;
+        self.sync_ts_plugin();
         self.did_find_server = true;
         Ok(SERVER_PATH.to_string())
     }
@@ -118,40 +123,32 @@ impl VueExtension {
         Ok(())
     }
 
-    fn install_ts_plugin_if_needed(&mut self) -> Result<()> {
-        let installed_plugin_version = zed::npm_package_installed_version(TS_PLUGIN_PACKAGE_NAME)?;
-        let latest_plugin_version = zed::npm_package_latest_version(TS_PLUGIN_PACKAGE_NAME)?;
+    fn sync_ts_plugin(&mut self) {
+        let server_version = match zed::npm_package_installed_version(PACKAGE_NAME) {
+            Ok(Some(version)) => version,
+            Ok(None) => {
+                println!("warning: could not determine installed {PACKAGE_NAME} version; skipping ts-plugin sync");
+                return;
+            }
+            Err(err) => {
+                println!("warning: could not query {PACKAGE_NAME} version: {err}; skipping ts-plugin sync");
+                return;
+            }
+        };
+        if let Err(err) = self.install_ts_plugin_if_needed(&server_version) {
+            println!("warning: failed to sync {TS_PLUGIN_PACKAGE_NAME}@{server_version}: {err}");
+        }
+    }
 
-        if installed_plugin_version.as_ref() != Some(&latest_plugin_version) {
-            println!("installing {TS_PLUGIN_PACKAGE_NAME}@{latest_plugin_version}");
-            zed::npm_install_package(TS_PLUGIN_PACKAGE_NAME, &latest_plugin_version)?;
+    fn install_ts_plugin_if_needed(&mut self, target_version: &str) -> Result<()> {
+        let installed_plugin_version = zed::npm_package_installed_version(TS_PLUGIN_PACKAGE_NAME)?;
+        if installed_plugin_version.as_deref() != Some(target_version) {
+            println!("installing {TS_PLUGIN_PACKAGE_NAME}@{target_version}");
+            zed::npm_install_package(TS_PLUGIN_PACKAGE_NAME, target_version)?;
         } else {
             println!("ts-plugin already installed");
         }
         Ok(())
-    }
-
-    fn get_ts_plugin_root_path(&self, worktree: &zed::Worktree) -> Result<Option<String>> {
-        let package_json = worktree.read_text_file("package.json")?;
-        let package_json: PackageJson = serde_json::from_str(&package_json)
-            .map_err(|err| format!("failed to parse package.json: {err}"))?;
-
-        let has_local_plugin = package_json
-            .dev_dependencies
-            .contains_key(TS_PLUGIN_PACKAGE_NAME)
-            || package_json
-                .dependencies
-                .contains_key(TS_PLUGIN_PACKAGE_NAME);
-
-        if has_local_plugin {
-            println!("Using local installation of {TS_PLUGIN_PACKAGE_NAME}");
-            return Ok(None);
-        }
-
-        println!("Using global installation of {TS_PLUGIN_PACKAGE_NAME}");
-        Ok(Some(
-            env::current_dir().unwrap().to_string_lossy().to_string(),
-        ))
     }
 }
 
@@ -218,13 +215,13 @@ impl zed::Extension for VueExtension {
         &mut self,
         _language_server_id: &zed::LanguageServerId,
         target_language_server_id: &zed::LanguageServerId,
-        worktree: &zed::Worktree,
+        _worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
         match target_language_server_id.as_ref() {
             "typescript-language-server" => Ok(Some(serde_json::json!({
                 "plugins": [{
                     "name": "@vue/typescript-plugin",
-                    "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
+                    "location": extension_install_dir(),
                     "languages": ["typescript", "vue.js"],
                 }],
             }))),
@@ -236,7 +233,7 @@ impl zed::Extension for VueExtension {
         &mut self,
         _language_server_id: &zed::LanguageServerId,
         target_language_server_id: &zed::LanguageServerId,
-        worktree: &zed::Worktree,
+        _worktree: &zed::Worktree,
     ) -> Result<Option<serde_json::Value>> {
         match target_language_server_id.as_ref() {
             "vtsls" => Ok(Some(serde_json::json!({
@@ -244,7 +241,7 @@ impl zed::Extension for VueExtension {
                     "tsserver": {
                         "globalPlugins": [{
                             "name": "@vue/typescript-plugin",
-                            "location": self.get_ts_plugin_root_path(worktree)?.unwrap_or_else(|| worktree.root_path()),
+                            "location": extension_install_dir(),
                             "enableForWorkspaceTypeScriptVersions": true,
                             "languages": ["vue.js"],
                             "configNamespace": "typescript"
