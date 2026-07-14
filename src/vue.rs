@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::{env, fs};
 
-use serde::Deserialize;
 use zed::lsp::{Completion, CompletionKind};
 use zed::CodeLabelSpan;
 use zed_extension_api::serde_json::json;
@@ -12,16 +10,11 @@ const SERVER_PATH: &str = "node_modules/@vue/language-server/bin/vue-language-se
 const PACKAGE_NAME: &str = "@vue/language-server";
 
 const TYPESCRIPT_PACKAGE_NAME: &str = "typescript";
+// TypeScript 7+ is the native (Go) compiler and no longer ships the JS API
+// (`ts.server`, `createLanguageService`, ...) that `@vue/language-server`
+// needs, so the bundled copy is pinned to the last JS-based release.
+const BUNDLED_TYPESCRIPT_VERSION: &str = "6.0.3";
 const TS_PLUGIN_PACKAGE_NAME: &str = "@vue/typescript-plugin";
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PackageJson {
-    #[serde(default)]
-    dependencies: HashMap<String, String>,
-    #[serde(default)]
-    dev_dependencies: HashMap<String, String>,
-}
 
 struct VueExtension {
     did_find_server: bool,
@@ -36,14 +29,10 @@ impl VueExtension {
         fs::metadata(SERVER_PATH).is_ok_and(|stat| stat.is_file())
     }
 
-    fn server_script_path(
-        &mut self,
-        language_server_id: &zed::LanguageServerId,
-        worktree: &zed::Worktree,
-    ) -> Result<String> {
+    fn server_script_path(&mut self, language_server_id: &zed::LanguageServerId) -> Result<String> {
         let server_exists = self.server_exists();
         if self.did_find_server && server_exists {
-            self.install_typescript_if_needed(worktree)?;
+            self.install_typescript_if_needed()?;
             self.sync_ts_plugin();
             return Ok(SERVER_PATH.to_string());
         }
@@ -78,44 +67,27 @@ impl VueExtension {
             }
         }
 
-        self.install_typescript_if_needed(worktree)?;
+        self.install_typescript_if_needed()?;
         self.sync_ts_plugin();
         self.did_find_server = true;
         Ok(SERVER_PATH.to_string())
     }
 
-    /// Returns whether a local copy of TypeScript exists in the worktree.
-    fn typescript_exists_for_worktree(&self, worktree: &zed::Worktree) -> Result<bool> {
-        let package_json = worktree.read_text_file("package.json")?;
-        let package_json: PackageJson = serde_json::from_str(&package_json)
-            .map_err(|err| format!("failed to parse package.json: {err}"))?;
-
-        let dev_dependencies = &package_json.dev_dependencies;
-        let dependencies = &package_json.dependencies;
-
-        // Since the extension is not allowed to read the filesystem within the project
-        // except through the worktree (which does not contains `node_modules`), we check
-        // the `package.json` to see if `typescript` is listed in the dependencies.
-        Ok(dev_dependencies.contains_key(TYPESCRIPT_PACKAGE_NAME)
-            || dependencies.contains_key(TYPESCRIPT_PACKAGE_NAME))
-    }
-
-    fn install_typescript_if_needed(&mut self, worktree: &zed::Worktree) -> Result<()> {
-        if self
-            .typescript_exists_for_worktree(worktree)
-            .unwrap_or_default()
-        {
-            println!("found local TypeScript installation");
-            return Ok(());
-        }
-
+    /// Ensures the bundled TypeScript next to the language server is the pinned,
+    /// JS-API-compatible version.
+    ///
+    /// The language server always resolves `typescript` relative to its own
+    /// installation directory (it is never given the worktree's copy), and
+    /// installing `@vue/language-server` also pulls in `typescript@latest` as a
+    /// peer dependency, so this must run even when the project has its own
+    /// TypeScript to replace an incompatible bundled copy.
+    fn install_typescript_if_needed(&mut self) -> Result<()> {
         let installed_typescript_version =
             zed::npm_package_installed_version(TYPESCRIPT_PACKAGE_NAME)?;
-        let latest_typescript_version = zed::npm_package_latest_version(TYPESCRIPT_PACKAGE_NAME)?;
 
-        if installed_typescript_version.as_ref() != Some(&latest_typescript_version) {
-            println!("installing {TYPESCRIPT_PACKAGE_NAME}@{latest_typescript_version}");
-            zed::npm_install_package(TYPESCRIPT_PACKAGE_NAME, &latest_typescript_version)?;
+        if installed_typescript_version.as_deref() != Some(BUNDLED_TYPESCRIPT_VERSION) {
+            println!("installing {TYPESCRIPT_PACKAGE_NAME}@{BUNDLED_TYPESCRIPT_VERSION}");
+            zed::npm_install_package(TYPESCRIPT_PACKAGE_NAME, BUNDLED_TYPESCRIPT_VERSION)?;
         } else {
             println!("typescript already installed");
         }
@@ -162,9 +134,9 @@ impl zed::Extension for VueExtension {
     fn language_server_command(
         &mut self,
         language_server_id: &zed::LanguageServerId,
-        worktree: &zed::Worktree,
+        _worktree: &zed::Worktree,
     ) -> Result<zed::Command> {
-        let server_path = self.server_script_path(language_server_id, worktree)?;
+        let server_path = self.server_script_path(language_server_id)?;
         Ok(zed::Command {
             command: zed::node_binary_path()?,
             args: vec![

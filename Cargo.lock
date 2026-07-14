@@ -788,7 +788,6 @@ dependencies = [
 name = "zed_vue"
 version = "0.3.6"
 dependencies = [
- "serde",
  "zed_extension_api",
 ]
 
