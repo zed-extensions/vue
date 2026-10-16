@@ -85,7 +85,7 @@
   (#set! language "pug"))
 
 ; Vue custom blocks (e.g <i18n lang="json">)
-; https://vuejs.org/api/sfc-spec.html#custom-blocks
+; See https://vuejs.org/api/sfc-spec.html#custom-blocks
 (element
   (start_tag
     (tag_name) @_tag
