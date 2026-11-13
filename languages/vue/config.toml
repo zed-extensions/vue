@@ -3,7 +3,7 @@ code_fence_block_name = "vue"
 grammar = "vue"
 path_suffixes = ["vue"]
 block_comment = ["<!-- ", " -->"]
-autoclose_before = ";:.,=}])>"
+autoclose_before = ";:.,=}])><"
 brackets = [
     { start = "{", end = "}", close = true, newline = true },
     { start = "[", end = "]", close = true, newline = true },
